@@ -1,6 +1,6 @@
-using ASEAtomsIO
+using ASEAtoms
 using Test
 
-@testset "ASEAtomsIO.jl" begin
+@testset "ASEAtoms.jl" begin
     # Write your tests here.
 end
