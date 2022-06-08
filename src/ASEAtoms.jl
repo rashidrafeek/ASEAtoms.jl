@@ -14,7 +14,7 @@ using Unitful: @u_str
 # Exports
 # 
 
-export ASEAtoms, aseread, asewrite
+export ASESystem, aseread, asewrite
 
 #
 # PyCall functions
@@ -37,9 +37,9 @@ end
 # Types
 #
 
-struct ASEAtoms <: AbstractSystem{3}
+struct ASESystem <: AbstractSystem{3}
     o::PyObject
-    function ASEAtoms(o::PyObject; assert=true)
+    function ASESystem(o::PyObject; assert=true)
         _checkisaseatoms(o)
         new(o)
     end
@@ -51,40 +51,40 @@ function _checkisaseatoms(o::PyObject)
     end
 end
 
-Base.length(sys::ASEAtoms) = length(sys.o)
-Base.size(sys::ASEAtoms) = length(sys.o)
+Base.length(sys::ASESystem) = length(sys.o)
+Base.size(sys::ASESystem) = length(sys.o)
 
-Base.position(sys::ASEAtoms) = collect(eachrow(sys.o.positions*u"Å"))
-AtomsBase.bounding_box(sys::ASEAtoms) = collect(eachrow(sys.o.cell[]u"Å"))
-function AtomsBase.boundary_conditions(sys::ASEAtoms)
+Base.position(sys::ASESystem) = collect(eachrow(sys.o.positions*u"Å"))
+AtomsBase.bounding_box(sys::ASESystem) = collect(eachrow(sys.o.cell[]u"Å"))
+function AtomsBase.boundary_conditions(sys::ASESystem)
     ifelse.(sys.o.pbc, Ref(Periodic()), Ref(DirichletZero()))
 end
 
-AtomsBase.atomic_symbol(sys::ASEAtoms) = Symbol.(sys.o.get_chemical_symbols())
-AtomsBase.atomic_number(sys::ASEAtoms) = sys.o.get_atomic_numbers()
-AtomsBase.atomic_mass(sys::ASEAtoms) = sys.o.get_masses()u"u"
+AtomsBase.atomic_symbol(sys::ASESystem) = Symbol.(sys.o.get_chemical_symbols())
+AtomsBase.atomic_number(sys::ASESystem) = sys.o.get_atomic_numbers()
+AtomsBase.atomic_mass(sys::ASESystem) = sys.o.get_masses()u"u"
 
-function Base.checkbounds(sys::ASEAtoms, i::Integer)
+function Base.checkbounds(sys::ASESystem, i::Integer)
     natoms = length(sys)
     if !(1 <= i <= natoms) 
-        error("Invalid index $i for `ASEAtoms` with indices 1:$(natoms)")
+        error("Invalid index $i for `ASESystem` with indices 1:$(natoms)")
     end
 end
 
-function Base.getindex(sys::ASEAtoms, index::Int)
+function Base.getindex(sys::ASESystem, index::Int)
     @boundscheck checkbounds(sys, index)
     AtomView(sys, index)
 end
 
-function AtomsBase.atomic_symbol(sys::ASEAtoms, i)
+function AtomsBase.atomic_symbol(sys::ASESystem, i)
     @boundscheck checkbounds(sys, i)
     return Symbol(sys.o[i].symbol)
 end
-function AtomsBase.atomic_number(sys::ASEAtoms, i)
+function AtomsBase.atomic_number(sys::ASESystem, i)
     @boundscheck checkbounds(sys, i)
     return convert(Int, sys.o[i].number)
 end
-function AtomsBase.atomic_mass(sys::ASEAtoms, i)
+function AtomsBase.atomic_mass(sys::ASESystem, i)
     @boundscheck checkbounds(sys, i)
     return sys.o[i].mass*u"u"
 end
