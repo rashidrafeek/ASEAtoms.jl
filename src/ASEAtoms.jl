@@ -7,8 +7,9 @@ module ASEAtoms
 using PyCall: PyObject, PyNULL, @py_str,
               pyisinstance
 using AtomsBase: AtomsBase, FastSystem, AbstractSystem, Atom,
-                 AtomView, Periodic, DirichletZero
-using Unitful: @u_str
+                 AtomView, Periodic, DirichletZero,
+                 atomic_number, bounding_box, periodicity
+using Unitful: @u_str, ustrip
 
 #
 # Exports
@@ -67,7 +68,7 @@ AtomsBase.atomic_mass(sys::ASESystem) = sys.o.get_masses()u"u"
 function Base.checkbounds(sys::ASESystem, i::Integer)
     natoms = length(sys)
     if !(1 <= i <= natoms) 
-        error("Invalid index $i for `ASESystem` with indices 1:$(natoms)")
+        throw(BoundsError(sys, i))
     end
 end
 
@@ -76,6 +77,10 @@ function Base.getindex(sys::ASESystem, index::Int)
     AtomView(sys, index)
 end
 
+function Base.position(sys::ASESystem, i)
+    @boundscheck checkbounds(sys, i)
+    return sys.o[i].position*u"Å"
+end
 function AtomsBase.atomic_symbol(sys::ASESystem, i)
     @boundscheck checkbounds(sys, i)
     return Symbol(sys.o[i].symbol)
@@ -94,7 +99,7 @@ end
 #
 
 """
-    ase_to_atomicsystem(atoms; periodic=true)
+    ase_to_atomicsystem(atoms::PyObject; periodic=true)
 
 Convert an ASE Atoms object, `atoms` to a `FastSystem`.
 """
@@ -109,5 +114,24 @@ function ase_to_atomicsystem(atoms::PyObject; assert=true)
 
     FastSystem(atoms, box, boundary_conditions)
 end
+
+"""
+    aseatoms(sys::AbstractSystem)
+
+Convert an `AbstractSystem` to an ASE Atoms object.
+"""
+function aseatoms(sys::AbstractSystem)
+    numbers = atomic_number(sys)
+    cell = map(bounding_box(sys)) do boxvec
+        ustrip.(u"Å", boxvec)
+    end
+    positions = map(position(sys)) do posvec
+        ustrip.(u"Å", posvec)
+    end
+    pbc = periodicity(sys)
+
+    return py"Atoms"(;numbers, positions, cell, pbc)
+end
+aseatoms(sys::ASESystem) = sys.o
 
 end
