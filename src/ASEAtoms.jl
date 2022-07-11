@@ -41,7 +41,9 @@ end
 struct ASESystem <: AbstractSystem{3}
     o::PyObject
     function ASESystem(o::PyObject; assert=true)
-        _checkisaseatoms(o)
+        if assert
+            _checkisaseatoms(o)
+        end
         new(o)
     end
 end
@@ -104,7 +106,9 @@ end
 Convert an ASE Atoms object, `atoms` to a `FastSystem`.
 """
 function ase_to_atomicsystem(atoms::PyObject; assert=true)
-    _checkisaseatoms(atoms)
+    if assert
+        _checkisaseatoms(atoms)
+    end
     box = eachrow(atoms.cell[]) .* 1u"Å"
     boundary_conditions = ifelse.(atoms.pbc, Ref(Periodic()), Ref(DirichletZero()))
     pos = atoms.positions * 1u"Å"
@@ -113,6 +117,20 @@ function ase_to_atomicsystem(atoms::PyObject; assert=true)
     atoms = Atom.(Symbol.(sym), eachrow(pos))
 
     FastSystem(atoms, box, boundary_conditions)
+end
+function ase_to_atomicsystem(atomslist::Vector{PyObject}; assert=true)
+    return ase_to_atomicsystem.(atomslist; assert)
+end
+
+"""
+    ase_to_atomicsystem(path::String, args...; kwargs...)
+
+Read structure file at `path` using `aseread` and convert it to `FastSystem`. 
+`args` and `kwargs` are passed on to `aseread`.
+"""
+function ase_to_atomicsystem(path::String, args...; kwargs...)
+    atoms = aseread(path, args...; kwargs...)
+    return ase_to_atomicsystem(atoms; assert=false)
 end
 
 """
