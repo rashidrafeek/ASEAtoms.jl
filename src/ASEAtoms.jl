@@ -6,8 +6,8 @@ module ASEAtoms
 
 using PyCall: PyObject, PyNULL, @py_str,
               pyisinstance
-using AtomsBase: AtomsBase, FastSystem, AbstractSystem, Atom,
-                 AtomView, Periodic, DirichletZero,
+using AtomsBase: AtomsBase, AbstractSystem, FlexibleSystem, 
+                 Atom, AtomView, Periodic, DirichletZero,
                  atomic_number, bounding_box, periodicity
 using Unitful: @u_str, ustrip
 
@@ -103,7 +103,7 @@ end
 """
     ase_to_atomicsystem(atoms::PyObject; periodic=true)
 
-Convert an ASE Atoms object, `atoms` to a `FastSystem`.
+Convert an ASE Atoms object, `atoms` to a `FlexibleSystem`.
 """
 function ase_to_atomicsystem(atoms::PyObject; assert=true)
     if assert
@@ -113,10 +113,16 @@ function ase_to_atomicsystem(atoms::PyObject; assert=true)
     boundary_conditions = ifelse.(atoms.pbc, Ref(Periodic()), Ref(DirichletZero()))
     pos = atoms.positions * 1u"Å"
     sym = atoms.get_chemical_symbols()
+    charges = atoms.get_initial_charges()
 
-    atoms = Atom.(Symbol.(sym), eachrow(pos))
+    if all(==(0), charges)
+        atoms = Atom.(Symbol.(sym), eachrow(pos))
+    else
+        f = (sym, pos, charge) -> Atom(Symbol(sym), pos; charge=charge)
+        atoms = f.(sym, eachrow(pos), charges)
+    end
 
-    FastSystem(atoms, box, boundary_conditions)
+    FlexibleSystem(atoms, box, boundary_conditions)
 end
 function ase_to_atomicsystem(atomslist::Vector{PyObject}; assert=true)
     return ase_to_atomicsystem.(atomslist; assert)
@@ -125,7 +131,7 @@ end
 """
     ase_to_atomicsystem(path::String, args...; kwargs...)
 
-Read structure file at `path` using `aseread` and convert it to `FastSystem`. 
+Read structure file at `path` using `aseread` and convert it to `FlexibleSystem`. 
 `args` and `kwargs` are passed on to `aseread`.
 """
 function ase_to_atomicsystem(path::String, args...; kwargs...)
@@ -148,7 +154,16 @@ function aseatoms(sys::AbstractSystem)
     end
     pbc = periodicity(sys)
 
-    return py"Atoms"(;numbers, positions, cell, pbc)
+    atoms = py"Atoms"(;numbers, positions, cell, pbc)
+
+    particles = collect(sys)
+    datnames = collect(keys(particles[1].data))
+    if :charge in datnames
+        charges = getindex.(getproperty.(particles, :data), :charge)
+        atoms.set_initial_charges(charges)
+    end
+	
+	return atoms
 end
 aseatoms(sys::ASESystem) = sys.o
 
