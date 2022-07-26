@@ -8,7 +8,8 @@ using PyCall: PyObject, PyNULL, @py_str,
               pyisinstance
 using AtomsBase: AtomsBase, AbstractSystem, FlexibleSystem, 
                  Atom, AtomView, Periodic, DirichletZero,
-                 atomic_number, bounding_box, periodicity
+                 atomic_number, bounding_box, periodicity,
+                 species_type
 using Unitful: @u_str, ustrip
 
 #
@@ -156,11 +157,13 @@ function aseatoms(sys::AbstractSystem)
 
     atoms = py"Atoms"(;numbers, positions, cell, pbc)
 
-    particles = collect(sys)
-    datnames = collect(keys(particles[1].data))
-    if :charge in datnames
-        charges = getindex.(getproperty.(particles, :data), :charge)
-        atoms.set_initial_charges(charges)
+    if :data in fieldnames(species_type(sys))
+        particles = collect(sys)
+        datnames = collect(keys(particles[1].data))
+        if :charge in datnames
+            charges = getindex.(getproperty.(particles, :data), :charge)
+            atoms.set_initial_charges(charges)
+        end
     end
 	
 	return atoms
