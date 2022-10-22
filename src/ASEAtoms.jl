@@ -49,6 +49,12 @@ struct ASESystem <: AbstractSystem{3}
     end
 end
 
+function ASESystem(sys::AbstractSystem)
+    pyatoms = aseatoms(sys)
+
+    return ASESystem(pyatoms)
+end
+
 function _checkisaseatoms(o::PyObject)
     if !pyisinstance(o, py"Atoms")
         error("The given object is not an instance of ASE Atoms object")
@@ -157,7 +163,7 @@ function aseatoms(sys::AbstractSystem)
 
     atoms = py"Atoms"(;numbers, positions, cell, pbc)
 
-    if :data in fieldnames(species_type(sys))
+    if :data in fieldnames(typeof(sys))
         particles = collect(sys)
         datnames = collect(keys(particles[1].data))
         if :charge in datnames
