@@ -176,4 +176,13 @@ function aseatoms(sys::AbstractSystem)
 end
 aseatoms(sys::ASESystem) = sys.o
 
+"""
+    ase_getindexatoms(atoms, inds)
+
+Get the given indices, `inds` from the Atoms object, `atoms`.
+"""
+function ase_getindexatoms(atoms, inds)
+    return py"($atoms)[$inds]"
+end
+
 end
