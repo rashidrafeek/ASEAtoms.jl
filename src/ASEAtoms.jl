@@ -24,6 +24,7 @@ export ASESystem, aseread, asewrite
 
 const aseread = PyNULL()
 const asewrite = PyNULL()
+const ase_Atoms = PyNULL()
 
 function __init__()
     py"""
@@ -33,6 +34,7 @@ function __init__()
 
     copy!(aseread, py"read")
     copy!(asewrite, py"write")
+    copy!(ase_Atoms, py"Atoms")
 end
 
 #
@@ -56,7 +58,7 @@ function ASESystem(sys::AbstractSystem)
 end
 
 function _checkisaseatoms(o::PyObject)
-    if !pyisinstance(o, py"Atoms")
+    if !pyisinstance(o, ase_Atoms)
         error("The given object is not an instance of ASE Atoms object")
     end
 end
@@ -161,7 +163,7 @@ function aseatoms(sys::AbstractSystem)
     end
     pbc = periodicity(sys)
 
-    atoms = py"Atoms"(;numbers, positions, cell, pbc)
+    atoms = ase_Atoms(;numbers, positions, cell, pbc)
 
     if :data in fieldnames(typeof(sys))
         particles = collect(sys)
