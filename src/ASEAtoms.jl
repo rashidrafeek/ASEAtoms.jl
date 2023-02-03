@@ -165,13 +165,9 @@ function aseatoms(sys::AbstractSystem)
 
     atoms = ase_Atoms(;numbers, positions, cell, pbc)
 
-    if :data in fieldnames(typeof(sys))
-        particles = collect(sys)
-        datnames = collect(keys(particles[1].data))
-        if :charge in datnames
-            charges = getindex.(getproperty.(particles, :data), :charge)
-            atoms.set_initial_charges(charges)
-        end
+    if hasatomkey(sys, :charge)
+        charges = sys[:, :charge]
+        atoms.set_initial_charges(charges)
     end
 	
 	return atoms
