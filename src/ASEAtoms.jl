@@ -9,7 +9,7 @@ using PyCall: PyObject, PyNULL, @py_str,
 using AtomsBase: AtomsBase, AbstractSystem, FlexibleSystem, 
                  Atom, AtomView, Periodic, DirichletZero,
                  atomic_number, bounding_box, periodicity,
-                 species_type
+                 species_type, hasatomkey
 using Unitful: @u_str, ustrip
 
 #
