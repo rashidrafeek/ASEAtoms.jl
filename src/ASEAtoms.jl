@@ -9,7 +9,7 @@ using PyCall: PyObject, PyNULL, @py_str,
 using AtomsBase: AtomsBase, AbstractSystem, FlexibleSystem, 
                  Atom, AtomView, Periodic, DirichletZero,
                  atomic_number, bounding_box, periodicity,
-                 species_type, hasatomkey
+                 species_type, hasatomkey, velocity
 using Unitful: @u_str, ustrip
 
 #
@@ -75,6 +75,8 @@ end
 AtomsBase.atomic_symbol(sys::ASESystem) = Symbol.(sys.o.get_chemical_symbols())
 AtomsBase.atomic_number(sys::ASESystem) = sys.o.get_atomic_numbers()
 AtomsBase.atomic_mass(sys::ASESystem) = sys.o.get_masses()u"u"
+# TODO Confirm this unit is the same used in ASE
+AtomsBase.velocity(sys::ASESystem) = collect(eachrow(sys.o.get_velocities()u"1/(sqrt(u/eV))"))
 
 function Base.checkbounds(sys::ASESystem, i::Integer)
     natoms = length(sys)
@@ -104,6 +106,25 @@ function AtomsBase.atomic_mass(sys::ASESystem, i)
     @boundscheck checkbounds(sys, i)
     return sys.o[i].mass*u"u"
 end
+AtomsBase.velocity(sys::ASESystem, i) = velocity(sys)[i]
+
+AtomsBase.species_type(::ASESystem) = AtomView{ASESystem}
+# System property access
+function Base.getindex(system::ASESystem, x::Symbol)
+    # if x in (:bounding_box, :boundary_conditions)
+    #     getfield(system, x)
+    # else
+        throw(KeyError("Key $x not found"))
+    # end
+end
+Base.haskey(::ASESystem, x::Symbol) = x in ()
+Base.keys(::ASESystem) = ()
+
+# Atom and atom property access
+AtomsBase.atomkeys(::ASESystem) = ()
+AtomsBase.hasatomkey(system::ASESystem, x::Symbol) = x in atomkeys(system)
+Base.getindex(system::ASESystem, i::Integer, x::Symbol) = getfield(system, x)[i]
+Base.getindex(system::ASESystem, ::Colon, x::Symbol) = getfield(system, x)
 
 #
 # Functions
