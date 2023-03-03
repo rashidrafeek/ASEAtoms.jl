@@ -111,20 +111,33 @@ AtomsBase.velocity(sys::ASESystem, i) = velocity(sys)[i]
 AtomsBase.species_type(::ASESystem) = AtomView{ASESystem}
 # System property access
 function Base.getindex(system::ASESystem, x::Symbol)
-    # if x in (:bounding_box, :boundary_conditions)
-    #     getfield(system, x)
-    # else
+    if haskey(system, x)
+        system.o.info[String(x)]
+    else
         throw(KeyError("Key $x not found"))
-    # end
+    end
 end
-Base.haskey(::ASESystem, x::Symbol) = x in ()
-Base.keys(::ASESystem) = ()
+Base.haskey(sys::ASESystem, x::Symbol) = x in keys(sys)
+Base.keys(sys::ASESystem) = Symbol.(keys(sys.o.info))
 
 # Atom and atom property access
-AtomsBase.atomkeys(::ASESystem) = ()
-AtomsBase.hasatomkey(system::ASESystem, x::Symbol) = x in atomkeys(system)
-Base.getindex(system::ASESystem, i::Integer, x::Symbol) = getfield(system, x)[i]
-Base.getindex(system::ASESystem, ::Colon, x::Symbol) = getfield(system, x)
+AtomsBase.atomkeys(sys::ASESystem) = Symbol.(keys(sys.o.arrays))
+AtomsBase.hasatomkey(sys::ASESystem, x::Symbol) = x in AtomsBase.atomkeys(sys)
+function Base.getindex(system::ASESystem, i::Integer, x::Symbol)
+    if AtomsBase.hasatomkey(system, x)
+        # Use python indexing so that matrices are indexed correctly
+        py"$(system.o.arrays[String(x)])[$i-1]"
+    else
+        throw(KeyError("Key $x not found"))
+    end
+end
+function Base.getindex(system::ASESystem, ::Colon, x::Symbol)
+    if AtomsBase.hasatomkey(system, x)
+        system.o.arrays[String(x)]
+    else
+        throw(KeyError("Key $x not found"))
+    end
+end
 
 #
 # Functions
