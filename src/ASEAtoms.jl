@@ -7,8 +7,7 @@ module ASEAtoms
 using PyCall: PyObject, PyNULL, @py_str,
               pyisinstance
 using AtomsBase: AtomsBase, AbstractSystem, FlexibleSystem, Atom, AtomView, 
-                 atomic_number, bounding_box, periodicity, species_type, 
-                 hasatomkey, velocity
+                 atomic_number, cell_vectors, periodicity, hasatomkey, velocity
 using Unitful: @u_str, ustrip
 
 #
@@ -107,7 +106,6 @@ function AtomsBase.atomic_mass(sys::ASESystem, i)
 end
 AtomsBase.velocity(sys::ASESystem, i) = velocity(sys)[i]
 
-AtomsBase.species_type(::ASESystem) = AtomView{ASESystem}
 # System property access
 function Base.getindex(system::ASESystem, x::Symbol)
     if haskey(system, x)
@@ -188,7 +186,7 @@ Convert an `AbstractSystem` to an ASE Atoms object.
 """
 function aseatoms(sys::AbstractSystem)
     numbers = atomic_number(sys)
-    cell = map(bounding_box(sys)) do boxvec
+    cell = map(cell_vectors(sys)) do boxvec
         ustrip.(u"Å", boxvec)
     end
     positions = map(position(sys)) do posvec
