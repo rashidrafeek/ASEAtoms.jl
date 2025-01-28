@@ -6,10 +6,9 @@ module ASEAtoms
 
 using PyCall: PyObject, PyNULL, @py_str,
               pyisinstance
-using AtomsBase: AtomsBase, AbstractSystem, FlexibleSystem, 
-                 Atom, AtomView, Periodic, DirichletZero,
-                 atomic_number, bounding_box, periodicity,
-                 species_type, hasatomkey, velocity
+using AtomsBase: AtomsBase, AbstractSystem, FlexibleSystem, Atom, AtomView, 
+                 atomic_number, bounding_box, periodicity, species_type, 
+                 hasatomkey, velocity
 using Unitful: @u_str, ustrip
 
 #
@@ -67,9 +66,9 @@ Base.length(sys::ASESystem) = length(sys.o)
 Base.size(sys::ASESystem) = length(sys.o)
 
 Base.position(sys::ASESystem) = collect(eachrow(sys.o.positions*u"Å"))
-AtomsBase.bounding_box(sys::ASESystem) = collect(eachrow(sys.o.cell[]u"Å"))
-function AtomsBase.boundary_conditions(sys::ASESystem)
-    ifelse.(sys.o.pbc, Ref(Periodic()), Ref(DirichletZero()))
+AtomsBase.cell_vectors(sys::ASESystem) = collect(eachrow(sys.o.cell[]u"Å"))
+function AtomsBase.periodicity(sys::ASESystem)
+    ifelse.(sys.o.pbc, true, false)
 end
 
 AtomsBase.atomic_symbol(sys::ASESystem) = Symbol.(sys.o.get_chemical_symbols())
